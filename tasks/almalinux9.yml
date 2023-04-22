@@ -1,0 +1,52 @@
+---
+# tasks file for roles/bash_it
+- name: Debug
+  debug:
+    msg: "{{ ansible_env.HOME }}/.bash_it"
+
+- name: Install git
+  become: true
+  dnf:
+    name: 'git'
+    state: present
+
+- name: Check installed bash_it
+  stat:
+    path: "{{ ansible_env.HOME }}/.bash_it"
+  register: chk_dir
+  changed_when: false
+  ignore_errors: true
+
+- name: Git clone bash_it
+  git:
+    repo: 'https://github.com/bash-it/bash-it.git'
+    dest: "{{ ansible_env.HOME }}/.bash_it"
+    depth: 1
+    version: "master"
+  when: chk_dir.stat.exists is false
+
+- name: Bash_it install when not installed
+  shell: |
+    ./install.sh -s
+  args:
+    chdir: '{{ ansible_env.HOME }}/.bash_it/'
+  when: chk_dir.stat.exists is false
+
+- name: Change theme bash_it
+  lineinfile:
+    dest: '{{ ansible_env.HOME }}/.bashrc'
+    regexp: "^export BASH_IT_THEME"
+    line: "export BASH_IT_THEME='{{ bash_it_theme }}'"
+  when:
+    - bash_it_theme is defined
+#    - chk_dir.stat.exists is false
+
+# - name: change theme bash_it
+#  lineinfile:
+#    dest: "{{ansible_env.HOME }}/.bashrc"
+#    regexp: "^export BASH_IT_THEME"
+#    insertafter: "^#export BASH_IT_THEME"
+#    line: "export BASH_IT_THEME='{{ bash_it_theme }}'"
+#  when:
+#    - chk_dir.stat.exists == false
+#    - bash_it_theme is defined
